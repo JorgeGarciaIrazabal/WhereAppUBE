@@ -29,6 +29,7 @@ class LoggingHub(Hub):
         session.commit()
         self.connections[user.ID] = self.connections.pop(self.sender.ID)
         self.connections[user.ID].ID = user.ID
+        session.close()
         return user.ID
 
 
@@ -43,7 +44,7 @@ class PlaceHub(Hub):
     @staticmethod
     def __updatePlaceValues(place, newPlace):
         place.Name = newPlace["Name"]
-        place.Owner = newPlace["Owner"]["ID"]
+        place.OwnerId = newPlace["OwnerId"]
         place.Latitude = newPlace["Latitude"]
         place.Longitude = newPlace["Longitude"]
         place.IconURI = newPlace["IconURI"]
@@ -58,6 +59,7 @@ class PlaceHub(Hub):
 
         session.add(place)
         session.commit()
+        session.close()
         return place.ID
 
     def updatePlace(self, newPlace):
@@ -66,6 +68,7 @@ class PlaceHub(Hub):
         self.__updatePlaceValues(place, newPlace)
         session.add(place)
         session.commit()
+        session.close()
         return place.ID
 
     def syncPlace(self, newPlace):
@@ -76,7 +79,8 @@ class PlaceHub(Hub):
 
     def getPlaces(self, ownerID):
         session = getSession()
-        places = session.query(Place).filter_by(Owner=ownerID)
+        places = session.query(Place).filter_by(OwnerId=ownerID)
+        session.close()
         return places.all()
 
 
@@ -88,18 +92,38 @@ class ChatHub(Hub):
 class TaskHub(Hub):
     def addTask(self, newTask):
         session = getSession()
+        task = self.cloneTask(newTask)
+        session.add(task)
+        session.commit()
+        if task.CreatorId != task.ReceiverId:
+            client = self.getClient(task.ReceiverId)
+            if client is not None:
+                client.newTask(task)
+        session.close()
+        return task.ID
+
+    @staticmethod
+    def cloneTask(newTask):
         task = Task()
         task.CreatedOn = newTask["CreatedOn"]
-        task.Creator = newTask["Creator"]["ID"]
-        task.Receiver = newTask["Receiver"]["ID"]
+        task.CreatorId = newTask["CreatorId"]
+        task.ReceiverId = newTask["ReceiverId"]
         task.Body = newTask["Body"]
         task.Type = newTask["Type"]
         if task.Type == task.Types.Place:
-            task.Location = newTask["Location"]["ID"]
+            task.LocationId = newTask["LocationId"]
         task.Schedule = newTask["Schedule"]
-        session.add(task)
-        session.commit()
-        return task.ID
+        return task
+
+    def successfullyReceived(self, taskId):
+        session = getSession()
+        task = session.query(Task).get(taskId)
+        assert isinstance(task, Task)
+        if task.CreatorId != task.ReceiverId:
+            client = self.getClient(task.CreatorId)
+            if client is not None:
+                client.confirmReceived(taskId)
+        session.close()
 
 
 class UtilsHub(Hub):
@@ -107,6 +131,7 @@ class UtilsHub(Hub):
         assert isinstance(id, int)
         self.connections[id] = self.connections.pop(self.sender.ID)
         self.connections[id].ID = id
+
 
 path = "C:/Software Projects/WhereAppU/app/src/main/res/drawable-mdpi/"
 for fn in os.listdir(path):
