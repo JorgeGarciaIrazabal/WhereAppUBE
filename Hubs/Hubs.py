@@ -132,7 +132,3 @@ class UtilsHub(Hub):
         self.connections[id] = self.connections.pop(self.sender.ID)
         self.connections[id].ID = id
 
-
-path = "C:/Software Projects/WhereAppU/app/src/main/res/drawable-mdpi/"
-for fn in os.listdir(path):
-    os.rename(path + fn, path + fn.replace("-", "_"))
