@@ -18,7 +18,7 @@ settings = {"static_path": os.path.join(os.path.dirname(__file__), "static"), }
 
 class IndexHandler(web.RequestHandler):
     def get(self):
-        self.render("index.html")
+        self.write("Hello, world")
 
 class UploadHandler(web.RequestHandler):
     def post(self):
