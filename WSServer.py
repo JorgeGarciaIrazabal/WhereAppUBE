@@ -41,7 +41,7 @@ if __name__ == '__main__':
     importlib.import_module("Hubs.Hubs")
     # HubDecorator.constructJSFile(settings["static_path"])
     Hub.initHubsInspection()
-    Hub.constructJAVAFile("com.application.jorge.whereappu.WebSocket","C:/Software Projects/WhereAppU/app/src/main/java/com/application/jorge/whereappu/WebSocket")
+    #Hub.constructJAVAFile("com.application.jorge.whereappu.WebSocket","C:/Software Projects/WhereAppU/app/src/main/java/com/application/jorge/whereappu/WebSocket")
     log.debug("starting...")
     app.listen(8888)
     ioloop.IOLoop.instance().start()
