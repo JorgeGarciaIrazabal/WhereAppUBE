@@ -116,7 +116,8 @@ class TaskHub(Hub):
         task.Type = newTask["Type"]
         if task.Type == task.Types.Place:
             task.LocationId = newTask["LocationId"]
-        task.Schedule = getDateTime(newTask["Schedule"])
+        if task.Type == task.Types.Scheduled:
+            task.Schedule = getDateTime(newTask["Schedule"])
         return task
 
     def successfullyReceived(self, taskId):
