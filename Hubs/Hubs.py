@@ -14,7 +14,7 @@ def getSession():
     """
     engine = create_engine('mysql://root@localhost/wau')
     Session = sessionmaker(bind=engine,
-                           expire_on_commit=True)
+                           expire_on_commit=False)
     session = Session()
     session._model_changes = {}
     return session
