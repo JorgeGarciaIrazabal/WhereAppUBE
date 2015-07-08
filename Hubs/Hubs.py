@@ -13,7 +13,8 @@ def getSession():
     :rtype : Session
     """
     engine = create_engine('mysql://root@localhost/wau')
-    Session = sessionmaker(bind=engine)
+    Session = sessionmaker(bind=engine,
+                           expire_on_commit=True)
     session = Session()
     session._model_changes = {}
     return session
