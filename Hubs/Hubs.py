@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from DBContext.tables import User, Task, Place
@@ -17,6 +18,8 @@ def getSession():
     session._model_changes = {}
     return session
 
+def getDateTime(dateStr):
+    return datetime.strptime(dateStr,'%Y/%m/%d %H:%M:%S %f')
 
 class LoggingHub(Hub):
     def logIn(self, phoneNumber, gcmId, name=None, email=None):
@@ -50,7 +53,7 @@ class PlaceHub(Hub):
         place.IconURI = newPlace["IconURI"]
         place.Type = newPlace["Type"]
         place.Range = newPlace["Range"]
-        place.CreatedOn = newPlace["CreatedOn"]
+        place.CreatedOn = getDateTime(newPlace["CreatedOn"])
 
     def createPlace(self, newPlace):
         session = getSession()
@@ -105,14 +108,14 @@ class TaskHub(Hub):
     @staticmethod
     def cloneTask(newTask):
         task = Task()
-        task.CreatedOn = newTask["CreatedOn"]
+        task.CreatedOn = getDateTime(newTask["CreatedOn"])
         task.CreatorId = newTask["CreatorId"]
         task.ReceiverId = newTask["ReceiverId"]
         task.Body = newTask["Body"]
         task.Type = newTask["Type"]
         if task.Type == task.Types.Place:
             task.LocationId = newTask["LocationId"]
-        task.Schedule = newTask["Schedule"]
+        task.Schedule = getDateTime(newTask["Schedule"])
         return task
 
     def successfullyReceived(self, taskId):
