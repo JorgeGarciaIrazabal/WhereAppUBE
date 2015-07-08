@@ -132,6 +132,8 @@ class TaskHub(Hub):
 class UtilsHub(Hub):
     def setID(self, id):
         assert isinstance(id, int)
-        self.connections[id] = self.connections.pop(self.sender.ID)
-        self.connections[id].ID = id
+        self.connections.pop(self.sender.ID)
+        self.sender.ID = id
+        self.connections[id] = self.sender
+
 
