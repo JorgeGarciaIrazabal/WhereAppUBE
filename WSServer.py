@@ -10,6 +10,10 @@ from tornado import web, ioloop
 from WSHubsAPI.ConnectionHandlers.Tornado import ClientHandler
 from WSHubsAPI.Hub import Hub
 
+abspath = os.path.abspath(__file__)
+dirName = os.path.dirname(abspath)
+os.chdir(dirName)
+
 logging.config.dictConfig(json.load(open('logging.json')))
 log = logging.getLogger(__name__)
 
