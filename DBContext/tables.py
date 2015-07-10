@@ -61,7 +61,7 @@ class Place(Base):
 
 
 if __name__ == '__main__':
-    engine = create_engine('mysql+mysql://root@localhost/wau', echo=True)
+    engine = create_engine('mysql://root@localhost/wau', echo=True)
     Base.metadata.create_all(bind=engine)
     # com = engine.connect()
     # s = select([User])

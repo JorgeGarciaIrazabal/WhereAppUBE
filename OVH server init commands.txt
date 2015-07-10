@@ -1,0 +1,15 @@
+apt-get update
+apt-get install git
+apt-get install make build-essential zlib1g-dev libbz2-dev libreadline-dev
+apt-get update
+apt-get install sqlite3 libsqlite3-dev
+apt-get install libssl-dev
+git clone https://github.com/JorgeGarciaIrazabal/WhereAppUBE.git
+apt-get install python-pip python-dev build-essential
+pip install --upgrade pip
+pip install --upgrade virtualenv 
+pip install tornado
+apt-get install python-sqlalchemy
+apt-get install mysql-server
+mysql
+	CREATE DATABASE wau
