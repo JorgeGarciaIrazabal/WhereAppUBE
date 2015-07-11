@@ -18,11 +18,11 @@ class Task(Base):
 
     ID = Column(Integer, primary_key=True)
     CreatorId = Column(ForeignKey(u'user.ID'), nullable=False, index=True)
-    CreatedOn = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
+    CreatedOn = Column(DateTime, nullable=False, default=datetime.now)
     Body = Column(Text(collation=u'utf8_unicode_ci'))
     Type = Column(Enum(u'Comment', u'Scheduled', u'Place'), nullable=False, server_default=text("'Comment'"))
     ReceiverId = Column(ForeignKey(u'user.ID'), nullable=False, index=True)
-    UpdatedOn = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"), onupdate=datetime.now)
+    UpdatedOn = Column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
     LocationId = Column(ForeignKey(u'place.ID'), nullable=True, index=True)
     Schedule = Column(DateTime, nullable=True)
     Status = Column(Integer, nullable=False, server_default=text("1"), index=True)
@@ -40,19 +40,20 @@ class User(Base):
     PhoneNumber = Column(Text(collation=u'utf8_unicode_ci'), nullable=False)
     Email = Column(Text(collation=u'utf8_unicode_ci'))
     GCM_ID = Column(Text(collation=u'utf8_unicode_ci'))
-    UpdatedOn = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"), onupdate=datetime.now)
+    UpdatedOn = Column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
 
 
 class Place(Base):
     __tablename__ = 'place'
+    __tablename__ = 'place'
 
     ID = Column(Integer, primary_key=True)
     OwnerId = Column(ForeignKey(u'user.ID'), nullable=False, index=True)
-    CreatedOn = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
+    CreatedOn = Column(DateTime, nullable=False, default=datetime.now)
     Name = Column(Text(collation=u'utf8_unicode_ci'))
     Type = Column(Enum(u'Public', u'Private'), nullable=False, server_default=text("'Public'"))
     IconURI = Column(Text(collation=u'utf8_unicode_ci'), nullable=False)
-    UpdatedOn = Column(DateTime, nullable=False, server_default=text("CURRENT_TIMESTAMP"), onupdate=datetime.now)
+    UpdatedOn = Column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
     Longitude = Column(Float, nullable=False)
     Latitude = Column(Float, nullable=False)
     Range = Column(Integer, nullable=False)

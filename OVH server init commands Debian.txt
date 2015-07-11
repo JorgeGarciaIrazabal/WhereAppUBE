@@ -10,6 +10,16 @@ pip install --upgrade pip
 pip install --upgrade virtualenv 
 pip install tornado
 apt-get install python-sqlalchemy
-apt-get install mysql-server
+apt-get install mysql-server mysql-common mysql-client
 mysql
-	CREATE DATABASE wau
+	CREATE DATABASE wau;
+apt-get install python-mysqldb
+apt-get install nano
+apt-get install upstart-sysv
+python2.7 DBContext/tables.py
+
+
+
+----- usefull comand lines
+
+pkill -9 python
