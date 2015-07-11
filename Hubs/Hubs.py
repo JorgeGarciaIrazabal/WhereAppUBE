@@ -7,6 +7,8 @@ from WSHubsAPI.Hub import Hub
 
 __author__ = 'Jorge'
 
+# This is a throwaway variable to deal with a python bug
+throwaway = datetime.datetime.strptime('20110101','%Y%m%d')
 
 def getSession():
     """
