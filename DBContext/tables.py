@@ -18,7 +18,7 @@ class Task(Base):
 
     ID = Column(Integer, primary_key=True)
     CreatorId = Column(ForeignKey(u'user.ID'), nullable=False, index=True)
-    CreatedOn = Column(DateTime, nullable=False, default=datetime.now)
+    CreatedOn = Column(DateTime, nullable=False, default=datetime.now, index=True)
     Body = Column(Text(collation=u'utf8_unicode_ci'))
     Type = Column(Enum(u'Comment', u'Scheduled', u'Place'), nullable=False, server_default=text("'Comment'"))
     ReceiverId = Column(ForeignKey(u'user.ID'), nullable=False, index=True)
@@ -49,7 +49,7 @@ class Place(Base):
 
     ID = Column(Integer, primary_key=True)
     OwnerId = Column(ForeignKey(u'user.ID'), nullable=False, index=True)
-    CreatedOn = Column(DateTime, nullable=False, default=datetime.now)
+    CreatedOn = Column(DateTime, nullable=False, default=datetime.now, index=True)
     Name = Column(Text(collation=u'utf8_unicode_ci'))
     Type = Column(Enum(u'Public', u'Private'), nullable=False, server_default=text("'Public'"))
     IconURI = Column(Text(collation=u'utf8_unicode_ci'), nullable=False)
@@ -57,6 +57,7 @@ class Place(Base):
     Longitude = Column(Float, nullable=False)
     Latitude = Column(Float, nullable=False)
     Range = Column(Integer, nullable=False)
+    DeletedOn = Column(DateTime, nullable=True, default=None)
 
     rUser = relationship(u'User', primaryjoin='Place.OwnerId == User.ID')
 

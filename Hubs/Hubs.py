@@ -57,6 +57,7 @@ class PlaceHub(Hub):
         place.Type = newPlace["Type"]
         place.Range = newPlace["Range"]
         place.CreatedOn = getDateTime(newPlace["CreatedOn"])
+        place.DeletedOn = getDateTime(newPlace["DeletedOn"])
 
     def createPlace(self, newPlace):
         session = getSession()
