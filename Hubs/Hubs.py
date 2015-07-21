@@ -22,6 +22,7 @@ def getSession():
     return session
 
 def getDateTime(dateStr):
+    if dateStr is None: return None
     return datetime.strptime(dateStr,'%Y/%m/%d %H:%M:%S %f')
 
 class LoggingHub(Hub):
@@ -86,7 +87,7 @@ class PlaceHub(Hub):
 
     def getPlaces(self, ownerID):
         session = getSession()
-        places = session.query(Place).filter_by(OwnerId=ownerID)
+        places = session.query(Place).filter(Place.OwnerId == ownerID)
         session.close()
         return places.all()
 
@@ -102,11 +103,12 @@ class TaskHub(Hub):
         task = self.cloneTask(newTask)
         session.add(task)
         session.commit()
+        session.close()
         if task.CreatorId != task.ReceiverId:
             client = self.getClient(task.ReceiverId)
             if client is not None:
                 client.newTask(task)
-        session.close()
+
         return task.ID
 
     @staticmethod
