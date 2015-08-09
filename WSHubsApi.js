@@ -56,20 +56,81 @@ function HubsAPI(url, serverTimeout) {
     this.wsClient.onMessageError = function (error) {
     };
     
-    this.ChatHub = {};
-    this.ChatHub.server = {
-        __HUB_NAME : "ChatHub",
+    this.SyncHub = {};
+    this.SyncHub.server = {
+        __HUB_NAME : "SyncHub",
         
-        getNumOfClientsConnected : function (){
+        phoneNumbers : function (phoneNumberArray){
             
-            return constructMessage(this.__HUB_NAME, "getNumOfClientsConnected",arguments);
-        },
-
-        sendToAll : function (name, message){
-            
-            return constructMessage(this.__HUB_NAME, "sendToAll",arguments);
+            return constructMessage(this.__HUB_NAME, "phoneNumbers",arguments);
         }
     }
-    this.ChatHub.client = {}
+    this.SyncHub.client = {}
+    this.LoggingHub = {};
+    this.LoggingHub.server = {
+        __HUB_NAME : "LoggingHub",
+        
+        logIn : function (phoneNumber, gcmId, name, email){
+            arguments[0] = phoneNumber == undefined ? None : phoneNumber;
+			arguments[1] = gcmId == undefined ? None : gcmId;
+            return constructMessage(this.__HUB_NAME, "logIn",arguments);
+        }
+    }
+    this.LoggingHub.client = {}
+    this.TaskHub = {};
+    this.TaskHub.server = {
+        __HUB_NAME : "TaskHub",
+        
+        getNotUpdatedTasks : function (since, userId){
+            
+            return constructMessage(this.__HUB_NAME, "getNotUpdatedTasks",arguments);
+        },
+
+        syncTask : function (newTask){
+            
+            return constructMessage(this.__HUB_NAME, "syncTask",arguments);
+        },
+
+        syncTasks : function (tasks){
+            
+            return constructMessage(this.__HUB_NAME, "syncTasks",arguments);
+        }
+    }
+    this.TaskHub.client = {}
+    this.UtilsHub = {};
+    this.UtilsHub.server = {
+        __HUB_NAME : "UtilsHub",
+        
+        setID : function (id){
+            
+            return constructMessage(this.__HUB_NAME, "setID",arguments);
+        }
+    }
+    this.UtilsHub.client = {}
+    this.PlaceHub = {};
+    this.PlaceHub.server = {
+        __HUB_NAME : "PlaceHub",
+        
+        createPlace : function (newPlace){
+            
+            return constructMessage(this.__HUB_NAME, "createPlace",arguments);
+        },
+
+        getPlaces : function (ownerID){
+            
+            return constructMessage(this.__HUB_NAME, "getPlaces",arguments);
+        },
+
+        syncPlace : function (newPlace){
+            
+            return constructMessage(this.__HUB_NAME, "syncPlace",arguments);
+        },
+
+        updatePlace : function (newPlace){
+            
+            return constructMessage(this.__HUB_NAME, "updatePlace",arguments);
+        }
+    }
+    this.PlaceHub.client = {}
 }
     

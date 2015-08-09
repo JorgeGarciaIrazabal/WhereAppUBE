@@ -24,5 +24,5 @@ python2.7 DBContext/tables.py
 
 pkill -9 python
 
-nohup python WSServer.py &
+nohup python WauServer.py &
 

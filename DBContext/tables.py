@@ -16,6 +16,14 @@ class Task(Base):
         Scheduled = u'Scheduled'
         Place = u'Place'
 
+    class States:
+        Created = 0
+        Uploaded = 1
+        Arrived = 2
+        Read = 3
+        Completed = 4
+        Dismissed = 5
+
     ID = Column(Integer, primary_key=True)
     CreatorId = Column(ForeignKey(u'user.ID'), nullable=False, index=True)
     CreatedOn = Column(DateTime, nullable=False, default=datetime.now, index=True)
@@ -25,7 +33,7 @@ class Task(Base):
     UpdatedOn = Column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
     LocationId = Column(ForeignKey(u'place.ID'), nullable=True, index=True)
     Schedule = Column(DateTime, nullable=True)
-    Status = Column(Integer, nullable=False, server_default=text("1"), index=True)
+    State = Column(Integer, nullable=False, server_default=text("1"), index=True)
 
     rCreator = relationship(u'User', primaryjoin='Task.CreatorId == User.ID')
     rReceiver = relationship(u'User', primaryjoin='Task.ReceiverId == User.ID')

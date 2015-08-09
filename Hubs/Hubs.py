@@ -1,14 +1,15 @@
 import os
 from datetime import datetime
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, or_
 from sqlalchemy.orm import sessionmaker, Session
 from DBContext.tables import User, Task, Place
-from WSHubsAPI.Hub import Hub
+from wshubsapi.Hub import Hub
 
 __author__ = 'Jorge'
 
 # This is a throwaway variable to deal with a python bug
-throwaway = datetime.strptime('20110101','%Y%m%d')
+throwaway = datetime.strptime('20110101', '%Y%m%d')
+
 
 def getSession():
     """
@@ -21,9 +22,11 @@ def getSession():
     session._model_changes = {}
     return session
 
+
 def getDateTime(dateStr):
     if dateStr is None: return None
-    return datetime.strptime(dateStr,'%Y/%m/%d %H:%M:%S %f')
+    return datetime.strptime(dateStr, '%Y/%m/%d %H:%M:%S %f')
+
 
 class LoggingHub(Hub):
     def logIn(self, phoneNumber, gcmId, name=None, email=None):
@@ -50,6 +53,7 @@ class SyncHub(Hub):
 class PlaceHub(Hub):
     @staticmethod
     def __updatePlaceValues(place, newPlace):
+        if place is None: place = Place()
         place.Name = newPlace["Name"]
         place.OwnerId = newPlace["OwnerId"]
         place.Latitude = newPlace["Latitude"]
@@ -59,6 +63,7 @@ class PlaceHub(Hub):
         place.Range = newPlace["Range"]
         place.CreatedOn = getDateTime(newPlace["CreatedOn"])
         place.DeletedOn = getDateTime(newPlace["DeletedOn"])
+        return place
 
     def createPlace(self, newPlace):
         session = getSession()
@@ -73,7 +78,7 @@ class PlaceHub(Hub):
     def updatePlace(self, newPlace):
         session = getSession()
         place = session.query(Place).get(newPlace["ID"])
-        self.__updatePlaceValues(place, newPlace)
+        place = self.__updatePlaceValues(place, newPlace)
         session.add(place)
         session.commit()
         session.close()
@@ -92,49 +97,91 @@ class PlaceHub(Hub):
         return places.all()
 
 
-class ChatHub(Hub):
-    def sendToAll(self, message):
-        self.sender.otherClients.alert(message)
-
-
 class TaskHub(Hub):
-    def addTask(self, newTask):
+    def syncTasks(self, tasks):
+        idsCorrelation = list()
         session = getSession()
-        task = self.cloneTask(newTask)
+        try:
+            for task in tasks:
+                try:
+                    newTaskId = self.__syncTask(task, session)
+                    idsCorrelation.append([task["ID"], newTaskId])
+                except:
+                    pass
+            session.commit()
+        except:
+            session.rollback()
+        finally:
+            session.close()
+        return idsCorrelation
+
+    def getNotUpdatedTasks(self, since, userId):
+        session = getSession()
+        try:
+            return session.query(Task).filter(Task.UpdatedOn > getDateTime(since),
+                                              or_(Task.ReceiverId == userId,
+                                                  Task.CreatorId == userId)).all()
+        finally:
+            session.close()
+
+    def syncTask(self, newTask):
+        session = getSession()
+        try:
+            self.__syncTask(newTask,session)
+            session.commit()
+        except Exception as e:
+            session.rollback()
+        finally:
+            session.close()
+
+    def __syncTask(self, newTask, session):
+        if newTask["ID"] < 0:
+            return self.__createTask(newTask, session)
+        else:
+            return self.__updateTask(newTask, session)
+
+
+
+    def __updateTask(self, newTask, session):
+        task = session.query(Task).get(newTask["ID"])
+        self.__updateTaskValues(task, newTask)
         session.add(task)
-        session.commit()
-        session.close()
+        session.flush()
+        otherClientId = task.CreatorId if self.sender.ID == task.ReceiverId else task.ReceiverId
+        client = self.getClient(otherClientId)
+        if client is not None:
+            client.taskUpdated(task)
+        return task.ID
+
+    def __createTask(self, newTask, session):
+        task = Task()
+        self.__updateTaskValues(task, newTask)
+        session.add(task)
+        session.flush()
         if task.CreatorId != task.ReceiverId:
             client = self.getClient(task.ReceiverId)
             if client is not None:
                 client.newTask(task)
-
         return task.ID
 
     @staticmethod
-    def cloneTask(newTask):
-        task = Task()
+    def __updateTaskValues(task, newTask):
+        """
+        :type task: Task
+        """
         task.CreatedOn = getDateTime(newTask["CreatedOn"])
         task.CreatorId = newTask["CreatorId"]
         task.ReceiverId = newTask["ReceiverId"]
         task.Body = newTask["Body"]
         task.Type = newTask["Type"]
+        newState = Task.States.Uploaded if newTask["State"] == Task.States.Created else newTask["State"]
+        if task.State < newState:
+            task.State = newState
         if task.Type == task.Types.Place:
             task.LocationId = newTask["LocationId"]
         if task.Type == task.Types.Scheduled:
             task.Schedule = getDateTime(newTask["Schedule"])
         return task
-
-    def successfullyReceived(self, taskId):
-        session = getSession()
-        task = session.query(Task).get(taskId)
-        assert isinstance(task, Task)
-        if task.CreatorId != task.ReceiverId:
-            client = self.getClient(task.CreatorId)
-            if client is not None:
-                client.confirmReceived(taskId)
-        session.close()
-
 
 class UtilsHub(Hub):
     def setID(self, id):
@@ -142,5 +189,3 @@ class UtilsHub(Hub):
         self.connections.pop(self.sender.ID)
         self.sender.ID = id
         self.connections[id] = self.sender
-
-
