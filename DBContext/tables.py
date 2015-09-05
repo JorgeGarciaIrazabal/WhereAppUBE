@@ -1,14 +1,55 @@
 # coding: utf-8
 from datetime import datetime
+from jsonpickle import handlers
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, Text, text, create_engine, Float
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.declarative import declarative_base, AbstractConcreteBase
 
 Base = declarative_base()
 
+class MyBase(AbstractConcreteBase,Base):
+    @classmethod
+    def insertOrUpdateFormDict(cls, session, newEntryDict):
+        """
+        :type _class: Base
+        :type newEntryDict: dict
 
-class Task(Base):
+        """
+        if "id" in newEntryDict:
+            return cls.updateFormDict(session,newEntryDict)
+        else:
+            return cls.insertFormDict(session,newEntryDict)
+
+    @classmethod
+    def __updateValuesFormDict(cls, entry, newEntryDict):
+        """
+        :type entry: Base
+        """
+        for newEntryKey in newEntryDict:
+            if newEntryKey in entry.__table__.columns and not isinstance(entry.__getattribute__(newEntryKey), Base):
+                entry.__dict__[newEntryKey] = newEntryDict[newEntryKey]
+
+    @classmethod
+    def insertFormDict(cls, session, newEntryDict):
+        """
+        :type newEntryDict: dict
+        """
+        entry = cls()
+        newEntryDict.pop('id', None)
+        cls.__updateValuesFormDict(entry,newEntryDict)
+        session.add(entry)
+        return entry
+
+    @classmethod
+    def updateFormDict(cls, session, newEntryDict):
+        id = newEntryDict.pop("id")
+        entry = session.query(cls).get(id)
+        cls.__updateValuesFormDict(entry,newEntryDict)
+        session.add(entry)
+        return entry
+
+class Task(MyBase):
     __tablename__ = 'task'
 
     class Types:
@@ -24,51 +65,62 @@ class Task(Base):
         Completed = 4
         Dismissed = 5
 
-    ID = Column(Integer, primary_key=True)
-    CreatorId = Column(ForeignKey(u'user.ID'), nullable=False, index=True)
-    CreatedOn = Column(DateTime, nullable=False, default=datetime.now, index=True)
-    Body = Column(Text(collation=u'utf8_unicode_ci'))
-    Type = Column(Enum(u'Comment', u'Scheduled', u'Place'), nullable=False, server_default=text("'Comment'"))
-    ReceiverId = Column(ForeignKey(u'user.ID'), nullable=False, index=True)
-    UpdatedOn = Column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
-    LocationId = Column(ForeignKey(u'place.ID'), nullable=True, index=True)
-    Schedule = Column(DateTime, nullable=True)
-    State = Column(Integer, nullable=False, server_default=text("1"), index=True)
+    id = Column(Integer, primary_key=True)
+    creatorId = Column(ForeignKey(u'user.ID'), nullable=False, index=True)
+    createdOn = Column(DateTime, nullable=False, default=datetime.now, index=True)
+    body = Column(Text(collation=u'utf8_unicode_ci'))
+    type = Column(Enum(u'Comment', u'Scheduled', u'Place'), nullable=False, server_default=text("'Comment'"))
+    receiverId = Column(ForeignKey(u'user.ID'), nullable=False, index=True)
+    updatedOn = Column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
+    locationId = Column(ForeignKey(u'place.ID'), nullable=True, index=True)
+    schedule = Column(DateTime, nullable=True)
+    state = Column(Integer, nullable=False, server_default=text("1"), index=True)
 
-    rCreator = relationship(u'User', primaryjoin='Task.CreatorId == User.ID')
-    rReceiver = relationship(u'User', primaryjoin='Task.ReceiverId == User.ID')
-    rLocation = relationship(u'Place', primaryjoin='Task.LocationId == Place.ID')
+    creator = relationship(u'User', primaryjoin='Task.CreatorId == User.ID')
+    receiver = relationship(u'User', primaryjoin='Task.ReceiverId == User.ID')
+    location = relationship(u'Place', primaryjoin='Task.LocationId == Place.ID')
 
 
-class User(Base):
+class User(MyBase):
     __tablename__ = 'user'
 
-    ID = Column(Integer, primary_key=True)
-    Name = Column(Text(collation=u'utf8_unicode_ci'), nullable=False)
-    PhoneNumber = Column(Text(collation=u'utf8_unicode_ci'), nullable=False)
-    Email = Column(Text(collation=u'utf8_unicode_ci'))
-    GCM_ID = Column(Text(collation=u'utf8_unicode_ci'))
-    UpdatedOn = Column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
+    id = Column(Integer, primary_key=True)
+    name = Column(Text(collation=u'utf8_unicode_ci'), nullable=False)
+    phoneNumber = Column(Text(collation=u'utf8_unicode_ci'), nullable=False)
+    email = Column(Text(collation=u'utf8_unicode_ci'))
+    GCM_ID = Column(Text(collation=u'utf8_unicode_ci'), default='123456789123456789')
+    updatedOn = Column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
 
 
-class Place(Base):
+class Place(MyBase):
     __tablename__ = 'place'
-    __tablename__ = 'place'
 
-    ID = Column(Integer, primary_key=True)
-    OwnerId = Column(ForeignKey(u'user.ID'), nullable=False, index=True)
-    CreatedOn = Column(DateTime, nullable=False, default=datetime.now, index=True)
-    Name = Column(Text(collation=u'utf8_unicode_ci'))
-    Type = Column(Enum(u'Public', u'Private'), nullable=False, server_default=text("'Public'"))
-    IconURI = Column(Text(collation=u'utf8_unicode_ci'), nullable=False)
-    UpdatedOn = Column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
-    Longitude = Column(Float, nullable=False)
-    Latitude = Column(Float, nullable=False)
-    Range = Column(Integer, nullable=False)
-    DeletedOn = Column(DateTime, nullable=True, default=None)
+    id = Column(Integer, primary_key=True)
+    ownerId = Column(ForeignKey(u'user.ID'), nullable=False, index=True)
+    createdOn = Column(DateTime, nullable=False, default=datetime.now, index=True)
+    name = Column(Text(collation=u'utf8_unicode_ci'))
+    type = Column(Enum(u'Public', u'Private'), nullable=False, server_default=text("'Public'"))
+    iconURI = Column(Text(collation=u'utf8_unicode_ci'), nullable=False)
+    updatedOn = Column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
+    longitude = Column(Float, nullable=False)
+    latitude = Column(Float, nullable=False)
+    range = Column(Integer, nullable=False)
+    deletedOn = Column(DateTime, nullable=True, default=None)
 
     rUser = relationship(u'User', primaryjoin='Place.OwnerId == User.ID')
 
+class MyBaseObject(handlers.BaseHandler):
+    def flatten(self, obj, data):
+        state = obj.__dict__.copy()
+        for key in state:
+            if isinstance(state[key], Base):
+                state[key] = state[key].__dict__.copy()
+                del state[key]['_sa_instance_state']
+
+        del state['_sa_instance_state']
+        return state
+
+handlers.register(Base, MyBaseObject, base=True)
 
 if __name__ == '__main__':
     engine = create_engine('mysql://root@localhost/wau', echo=True)

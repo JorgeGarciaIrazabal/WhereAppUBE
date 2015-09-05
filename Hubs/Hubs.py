@@ -1,9 +1,10 @@
-import os
 from datetime import datetime
-from sqlalchemy import create_engine, or_
-from sqlalchemy.orm import sessionmaker, Session
-from DBContext.tables import User, Task, Place
+
+from sqlalchemy import or_
 from wshubsapi.Hub import Hub
+
+from DBContext.DataBaseHelper import DataBaseHelper
+from DBContext.tables import User, Task, Place
 
 __author__ = 'Jorge'
 
@@ -11,16 +12,7 @@ __author__ = 'Jorge'
 throwaway = datetime.strptime('20110101', '%Y%m%d')
 
 
-def getSession():
-    """
-    :rtype : Session
-    """
-    engine = create_engine('mysql://root@localhost/wau')
-    Session = sessionmaker(bind=engine,
-                           expire_on_commit=False)
-    session = Session()
-    session._model_changes = {}
-    return session
+getSession = DataBaseHelper.getSession
 
 
 def getDateTime(dateStr):
@@ -29,18 +21,19 @@ def getDateTime(dateStr):
 
 
 class LoggingHub(Hub):
-    def logIn(self, phoneNumber, gcmId, name=None, email=None):
-        session = getSession()
-        user = session.query(User).filter_by(PhoneNumber=phoneNumber).first()
-        if not user:
-            user = User()
-        user.Name, user.PhoneNumber, user.Email, user.GCM_ID = name, phoneNumber, email, gcmId
-        session.add(user)
-        session.commit()
-        self.connections[user.ID] = self.connections.pop(self.sender.ID)
-        self.connections[user.ID].ID = user.ID
-        session.close()
-        return user.ID
+    def logIn(self, phoneNumber, name=None, email=None):
+        with getSession() as session:
+            user = session.query(User).filter_by(PhoneNumber=phoneNumber).first()
+            if not user:
+                user = User()
+            user.Name, user.PhoneNumber, user.Email = name, phoneNumber, email
+            session.add(user)
+            session.commit()
+            self.connections.pop(self.sender.ID)
+            self.sender.client.ID = user.ID
+            self.sender.ID = user.ID
+            self.connections[user.ID] = self.sender
+            return user.ID
 
 
 class SyncHub(Hub):
@@ -66,23 +59,16 @@ class PlaceHub(Hub):
         return place
 
     def createPlace(self, newPlace):
-        session = getSession()
-        place = Place()
-        self.__updatePlaceValues(place, newPlace)
-
-        session.add(place)
-        session.commit()
-        session.close()
-        return place.ID
+        with  getSession() as session:
+            place = Place.insertFormDict(session, newPlace)
+            session.commit()
+            return place.ID
 
     def updatePlace(self, newPlace):
-        session = getSession()
-        place = session.query(Place).get(newPlace["ID"])
-        place = self.__updatePlaceValues(place, newPlace)
-        session.add(place)
-        session.commit()
-        session.close()
-        return place.ID
+        with  getSession() as session:
+            place = Place.updateFormDict(session, newPlace)
+            session.commit()
+            return place.ID
 
     def syncPlace(self, newPlace):
         if newPlace["ID"] < 0:
@@ -100,39 +86,32 @@ class PlaceHub(Hub):
 class TaskHub(Hub):
     def syncTasks(self, tasks):
         idsCorrelation = list()
-        session = getSession()
-        try:
-            for task in tasks:
-                try:
-                    newTaskId = self.__syncTask(task, session)
-                    idsCorrelation.append([task["ID"], newTaskId])
-                except:
-                    pass
-            session.commit()
-        except:
-            session.rollback()
-        finally:
-            session.close()
-        return idsCorrelation
+        with getSession() as session:
+            try:
+                for task in tasks:
+                    try:
+                        newTaskId = self.__syncTask(task, session)
+                        idsCorrelation.append([task["ID"], newTaskId])
+                    except:
+                        pass
+                session.commit()
+            except:
+                session.rollback()
+            return idsCorrelation
 
     def getNotUpdatedTasks(self, since, userId):
-        session = getSession()
-        try:
+        with getSession() as session:
             return session.query(Task).filter(Task.UpdatedOn > getDateTime(since),
                                               or_(Task.ReceiverId == userId,
                                                   Task.CreatorId == userId)).all()
-        finally:
-            session.close()
 
     def syncTask(self, newTask):
-        session = getSession()
-        try:
-            self.__syncTask(newTask,session)
-            session.commit()
-        except Exception as e:
-            session.rollback()
-        finally:
-            session.close()
+        with getSession() as session:
+            try:
+                self.__syncTask(newTask,session)
+                session.commit()
+            except Exception as e:
+                session.rollback()
 
     def __syncTask(self, newTask, session):
         if newTask["ID"] < 0:
@@ -140,52 +119,26 @@ class TaskHub(Hub):
         else:
             return self.__updateTask(newTask, session)
 
-
-
     def __updateTask(self, newTask, session):
-        task = session.query(Task).get(newTask["ID"])
-        self.__updateTaskValues(task, newTask)
+        task = Task.updateFormDict(session,newTask)
         session.add(task)
         session.flush()
         otherClientId = task.CreatorId if self.sender.ID == task.ReceiverId else task.ReceiverId
-        client = self.getClient(otherClientId)
-        if client is not None:
-            client.taskUpdated(task)
+        self.getClient(otherClientId).taskUpdated(task)
         return task.ID
 
     def __createTask(self, newTask, session):
-        task = Task()
-        self.__updateTaskValues(task, newTask)
-        session.add(task)
+        task = Task.insertFormDict(session,newTask)
         session.flush()
         if task.CreatorId != task.ReceiverId:
-            client = self.getClient(task.ReceiverId)
-            if client is not None:
-                client.newTask(task)
+            self.getClient(task.ReceiverId).newTask(task)
         return task.ID
 
-    @staticmethod
-    def __updateTaskValues(task, newTask):
-        """
-        :type task: Task
-        """
-        task.CreatedOn = getDateTime(newTask["CreatedOn"])
-        task.CreatorId = newTask["CreatorId"]
-        task.ReceiverId = newTask["ReceiverId"]
-        task.Body = newTask["Body"]
-        task.Type = newTask["Type"]
-        newState = Task.States.Uploaded if newTask["State"] == Task.States.Created else newTask["State"]
-        if task.State < newState:
-            task.State = newState
-        if task.Type == task.Types.Place:
-            task.LocationId = newTask["LocationId"]
-        if task.Type == task.Types.Scheduled:
-            task.Schedule = getDateTime(newTask["Schedule"])
-        return task
-
 class UtilsHub(Hub):
-    def setID(self, id):
-        assert isinstance(id, int)
+    def setId(self, id):
+        assert isinstance(id, (int, long))
         self.connections.pop(self.sender.ID)
+        self.sender.client.ID = id
         self.sender.ID = id
         self.connections[id] = self.sender
+

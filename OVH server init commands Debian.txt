@@ -23,3 +23,5 @@ python2.7 DBContext/tables.py
 ----- usefull comand lines
 
 pkill -9 python
+
+nohup python WauServer.py &
