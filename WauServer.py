@@ -9,10 +9,13 @@ import json
 from tornado import web, ioloop
 from wshubsapi.ConnectionHandlers.Tornado import ClientHandler
 from wshubsapi.Hub import Hub
+import wshubsapi.utils as wsUtils
 
 abspath = os.path.abspath(__file__)
 dirName = os.path.dirname(abspath)
 os.chdir(dirName)
+
+wsUtils.DATE_TIME_FORMAT = '%Y/%m/%d %H:%M:%S.%f'
 
 logging.config.dictConfig(json.load(open('logging.json')))
 log = logging.getLogger(__name__)
@@ -45,7 +48,8 @@ if __name__ == '__main__':
     importlib.import_module("Hubs.Hubs")
     Hub.initHubsInspection()
     Hub.constructJSFile("C:/Software Projects/ionicWAU/www/dependencies")
+    Hub.constructPythonFile("DummyClient")
     #Hub.constructJAVAFile("com.application.jorge.whereappu.WebSocket","C:/Software Projects/WhereAppU/app/src/main/java/com/application/jorge/whereappu/WebSocket")
     log.debug("starting...")
-    app.listen(8844)
+    app.listen(8845)
     ioloop.IOLoop.instance().start()
