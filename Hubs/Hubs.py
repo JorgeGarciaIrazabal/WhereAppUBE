@@ -54,13 +54,14 @@ class SyncHub(Hub):
         baseClass = globals()[tableName]
         assert (issubclass(baseClass, Base))
         with  getSession() as session:
+            syncDate = datetime.utcnow()
             notSyncedEntries = self.getNotSyncedEntries(tableName, since, usersIds)
             newIds = []
             for entry in entries:
                 newIds.append(baseClass.insertOrUpdateFormDict(session, entry))
             session.commit()
             newIds = map(lambda x: x.id, newIds)
-        return {'notSyncedEntries': notSyncedEntries, 'newIds': newIds}
+        return {'notSyncedEntries': notSyncedEntries, 'newIds': newIds, 'syncDate': syncDate}
 
 
 class UserHub(Hub):
@@ -129,7 +130,7 @@ class TaskHub(Hub):
                 task = self.__syncTask(newTask, session)
                 task.state = max([task.States.Uploaded, task.state])
                 session.commit()
-                return False
+                return True
             except Exception as e:
                 session.rollback()
 
@@ -159,7 +160,7 @@ class TaskHub(Hub):
 
     def writingTo(self, userId, start):
         self.getClient(userId).showIsWriting(self.sender.ID, start)
-        return False
+        return None
 
 
 class UtilsHub(Hub):
@@ -170,5 +171,11 @@ class UtilsHub(Hub):
         self.sender.ID = id
         self.connections[id] = self.sender
 
+    def getId(self):
+        return self.sender.ID
+
     def sentToAll(self, message):
         self.allClients.messageReceiver(message)
+
+    def isConnected(self, id):
+        return self.connections.has_key(id)

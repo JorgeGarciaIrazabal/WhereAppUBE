@@ -43,7 +43,10 @@ class MyBase(AbstractConcreteBase, Base):
                 if isinstance(cls.__dict__[newEntryKey].type, DateTime):
                     entry.__setattr__(newEntryKey, getDateTime(newEntryDict[newEntryKey]))
                 else:
-                    entry.__setattr__(newEntryKey,  newEntryDict[newEntryKey])
+                    entry.__setattr__(newEntryKey, newEntryDict[newEntryKey])
+
+        #we can not allow updatedOn value after current  time
+        entry.updatedOn = min(entry.updatedOn, datetime.utcnow())
 
     @classmethod
     def insertFormDict(cls, session, newEntryDict):
@@ -155,8 +158,10 @@ class MyBaseObject(handlers.BaseHandler):
             if isinstance(state[key], Base):
                 state[key] = state[key].__dict__.copy()
                 del state[key]['_sa_instance_state']
+                del state[key]['createdOn']
 
         del state['_sa_instance_state']
+        state.pop('createdOn',None)
         return state
 
 

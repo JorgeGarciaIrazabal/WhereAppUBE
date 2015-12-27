@@ -246,6 +246,30 @@ class HubsAPI(object):
 
         class __Server(GenericServer):
             
+            def getId(self, ):
+                """
+                :rtype : WSReturnObject
+                """
+                args = list()
+                
+                id = self._getNextMessageID()
+                body = {"hub": self.hubName, "function": "getId", "args": args, "ID": id}
+                retFunction = self.wsClient.getReturnFunction(id)
+                self.wsClient.send(self._serializeObject(body))
+                return retFunction
+        
+            def isConnected(self, id):
+                """
+                :rtype : WSReturnObject
+                """
+                args = list()
+                args.append(id)
+                id = self._getNextMessageID()
+                body = {"hub": self.hubName, "function": "isConnected", "args": args, "ID": id}
+                retFunction = self.wsClient.getReturnFunction(id)
+                self.wsClient.send(self._serializeObject(body))
+                return retFunction
+        
             def sentToAll(self, message):
                 """
                 :rtype : WSReturnObject

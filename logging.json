@@ -32,6 +32,7 @@
       "backupCount": 20,
       "encoding": "utf8"
     }
+
   },
   "loggers": {
     "my_module": {
